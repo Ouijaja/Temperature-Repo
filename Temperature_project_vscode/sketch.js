@@ -125,7 +125,7 @@ function getTemp() {
 
 // Callback function that receives the API response data
 function gotData(data) {
-  // Gets the data and converts from kelvin to celsius
+  // Gets the data and prints to log as celsius
   console.log(data.main.temp - 273.15);
   console.log(data.main.temp_min - 273.15);
   console.log(data.main.temp_max - 273.15);
