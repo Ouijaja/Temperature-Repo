@@ -1,33 +1,39 @@
-
-
 let url;
-let ulat = "51.37433236749744";
-let ulon = "-0.48220181010619695";
-let apiKey = "ad18681a96d109fbeaa44c67db9598f4";
+let ulat = 51.37433236749744;
+let ulon = -0.48220181010619695;
+let lat = 0;
+let lon = 0;
+let cKey = "ad18681a96d109fbeaa44c67db9598f4";
+let fKey = "cd7b36c3c57f6c477856f76a895f3707";
+let apiKey;
 let heading = 0;
 let radius = innerWidth / 3.2; //aesthetic only radius of compass 
 let thickness = innerWidth / 3.6; //aesthetic thickness of compass
-let roughness = 1; //lower values create a smoother disc at the cost of performance. Recommended values between 1 and 40. 
-let tempCardinal = [160, 184, 144, 154];
-
+let roughness = 1; //lower values create a smoother disc at the cost of performance. Recommended values between 1 and 40. Values other than 1 may not show temperature properly
+let tempCardinal = [0, 0, 0, 0, 0, 0, 0, 0];
+let calibrated = false;
+let calibButton;
+let calibHeadingAdjust = 0;
+let done = 0;
+let detectRadius = 1; //range temperature is detected at. 1 is a 5 minute walk, 2 is 10 mins, 3 is 15, etc
 
 
 ///NOTES
 /*
 
 
+The rotation may not work on iphone
+Colour weighting currently too sensitive, consantly changing 
+
+
+Gets 8 compass directions N NE E SE S SW W NW and the temperatures at those points within a 5 minute walk,
+then plots on compass as colours. Currently the colours are raw tempertatures in celsius and not properly weighted. 
+
 TO-DO:
 
-MAKE SURE THAT NORTH IS FOUND CORRECTLY REGARDLESS OF STARTING ORIENTATION
-
-
-
-Gets 4 compass directions NESW
-N add 0.01 to long 
-E add 0.01 to lat
-S subtract 0.01 long
-W subtract 0.01 lat
-
+Better heat weighting for the colours
+Add text
+Nicer looking button for caibration
 
 */
 
@@ -37,11 +43,13 @@ function setup() {
 
   createCanvas(innerWidth, innerHeight);
   frameRate(15);
-
+  getCoords();
   setInterval(getCoords, 1000) //gets user position every second
-  //setInterval(getTemp, 5000); //gets temperature every x seconds. Don't call this more than 4x/s  or the limit on the free api will be exceeded (they might send me an invoice ££££££££££££££)
+  setInterval(getTemp, 5000); //gets temperature every x seconds. Don't call this more than 4x/s or the limit on the free api will be exceeded
 
-
+  calibButton = createButton("calibrate").mousePressed(calibButtonPressed);
+  calibButton.position((width / 2) - ((width / 4) / 2), height / 2 - ((width / 4) / 2));
+  calibButton.size(width / 4, width / 4);
 
 }
 
@@ -49,12 +57,15 @@ function setup() {
 
 function draw() {
 
-  background(210, 189, 125);
+  background(100);
 
   calcHeading();
-  //print(heading);
+  print("Compass Heading:", heading);
 
   drawCompass();
+  if (calibrated == false) {
+    calibHeadingAdjust = heading;
+  }
 
 
 }
@@ -73,7 +84,7 @@ function getPosition(position) {
   ulat = position.coords.latitude;
   ulon = position.coords.longitude;
   // console.log("ulat/ulon= " + ulat, ulon);
-  // console.log(ulat, ulon);
+  
 
 };
 
@@ -81,173 +92,287 @@ function getPosition(position) {
 
 
 
-function getTemp() {
-  // When data is received, it will automatically call gotData function
-  for (i = 0; i < 4; i++) {
+async function getTemp() {
+  done = 0;
 
+
+  // When data is received, it will automatically call gotData function
+  for (i = 0; i < 8; i++) {
     //North
-    if (i == 1) {
+    if (i == 0) {
       lat = ulat;
-      lon = ulon + 0.01;
+      lon = ulon + (0.01 * detectRadius);
+      apiKey = cKey;
+
+    }
+
+    //NE
+    else if (i == 1) {
+      lat = ulat + (0.01 * detectRadius);
+      lon = ulon + (0.01 * detectRadius);
+      apiKey = fKey;
 
     }
 
     //East
     else if (i == 2) {
-      lat = ulat + 0.01;
-      lon = ulon
+      lat = ulat + (0.01 * detectRadius);
+      lon = ulon;
+      apiKey = cKey;
+
+    }
+
+    //SEast
+    else if (i == 3) {
+      lat = ulat + (0.01 * detectRadius);
+      lon = ulon - (0.01 * detectRadius);
+      apiKey = fKey;
 
     }
     //South
-    else if (i == 3) {
+    else if (i == 4) {
       lat = ulat;
-      lon = ulon - 0.01;
+      lon = ulon - (0.01 * detectRadius);
+      apiKey = cKey;
+
+    }
+
+    //SWest
+    else if (i == 5) {
+      lat = ulat - (0.01 * detectRadius);
+      lon = ulon - (0.01 * detectRadius);
+      apiKey = fKey;
 
     }
     //West
-    else {
-      lat = ulat - 0.01;
+    else if (i == 6) {
+      lat = ulat - (0.01 * detectRadius);
       lon = ulon;
+      apiKey = cKey;
+
+    }
+
+    //NWest
+    else if (i == 7) {
+      lat = ulat - (0.01 * detectRadius);
+      lon = ulon + (0.01 * detectRadius);
+      apiKey = fKey;
 
     }
 
     url = "https://api.openweathermap.org/data/2.5/weather?lat=" + lat + "&lon=" + lon + "&appid=" + apiKey
+    print("url: " + url);
+
     loadJSON(url, gotData); //makes api request
     console.log("got temp");
-    tempCardinal[i] = data.main.temp - 273.15 //sets the temperature in degrees to one of four temperature storage slots
-    tempCardinal[i] = constrain(tempCardinal[i] * 10, 0, 255); //multiplies by 10 to get a useable colour value.
+    let interLoop = setInterval(function () {
+
+      if (done == 8) {
+        clearInterval(interLoop);
+        print("interval cleared");
+        print("tempCardinal unmapped: " + tempCardinal);
+
+      }
+
+    }, 10);
+  }
+}
+
+////// :) :) :) :) :)
+
+// Callback function that receives the API response data
+function gotData(data) {
+  
+  if (data !== "null" && data !== "undefined") {
+    done = done + 1;
+    print("done: " + done);
+    tempCardinal[done - 1] = data.main.temp - 273.15 //sets the temperature in degrees to one of 8 temperature storage slots
+    //tempCardinal[done-1] = constrain(tempCardinal[done-1] * 10, 0, 255); //multiplies by 10 to get a useable colour value.
+    tempCardinal[done - 1] = map(tempCardinal[done - 1], -10, 32, 0, 255); //remaps possible temperatures of -10c to 32c to colour range 0-255 
+    
+    
 
   }
 }
 
-//:):):):):)
 
 
-// Callback function that receives the API response data
-function gotData(data) {
-  // Gets the data and prints to log as celsius
-  console.log(data.main.temp - 273.15);
-  console.log(data.main.temp_min - 273.15);
-  console.log(data.main.temp_max - 273.15);
+
+///////////////////////////////////////
+
+function calibButtonPressed() {
+
+  removeElements(calibButton);
+
+  calibrated = true;
 }
-
-
-//////////////////////////////////
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~FINDS NORTH, DESCRIBED BY AN ANGLE ON A CIRCLE WHERE 0 IS NORTH~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-//edited from:
+//sourced:
 //https://stackoverflow.com/questions/61336948/calculating-the-cardinal-direction-of-a-smartphone-with-js
+//condensed and switched to horizontal by chat gpt
+//edited by me
 
 function calcHeading() {
-
   const handleOrientation = (event) => {
-    if (event.webkitCompassHeading) {
-      // some devices don't understand "alpha" (especially IOS devices)
+
+
+    // For iOS devices
+    if (event.webkitCompassHeading !== undefined) {
       heading = event.webkitCompassHeading;
+    } else if (event.alpha !== null) {
+      // For most other modern devices, when phone is flat
+      // alpha is compass direction (0 is north)
+      heading = event.alpha;
     }
-    else {
-      heading = compassHeading(event.alpha, event.beta, event.gamma);
+
+    if (heading !== undefined) {
+      if (calibrated == true) {
+        heading = (heading % 360) - calibHeadingAdjust;
+
+      } else {
+        heading = heading % 360;
+      }
+      heading = heading.toFixed(0);
+      heading = int(heading);
 
     }
   };
 
-  window.addEventListener('deviceorientation', handleOrientation, false);
+  window.addEventListener('deviceorientation', handleOrientation, true);
+}
 
-  const compassHeading = (alpha, beta, gamma) => {
-
-    // Convert degrees to radians
-    const alphaRad = alpha * (Math.PI / 180);
-    const betaRad = beta * (Math.PI / 180);
-    const gammaRad = gamma * (Math.PI / 180);
-
-    // Calculate equation components
-    const cA = Math.cos(alphaRad);
-    const sA = Math.sin(alphaRad);
-    const cB = Math.cos(betaRad);
-    const sB = Math.sin(betaRad);
-    const cG = Math.cos(gammaRad);
-    const sG = Math.sin(gammaRad);
-
-    // Calculate A, B, C rotation components
-    const rA = - cA * sG - sA * sB * cG;
-    const rB = - sA * sG + cA * sB * cG;
-    const rC = - cB * cG;
-
-    // Calculate compass heading
-    let compassHeading = Math.atan(rA / rB);
-
-    // Convert from half unit circle to whole unit circle
-    if (rB < 0) {
-      compassHeading += Math.PI;
-    } else if (rA < 0) {
-      compassHeading += 2 * Math.PI;
-    }
-
-    // Convert radians to degrees
-    compassHeading *= 180 / Math.PI;
-
-    return compassHeading;
-
-  };
-
-};
 
 ////////////////////////////////
 
+
+
+//////////////////////////////////
+
 function drawCompass() {
 
-
+  //COLOUR WEIGHTING BASED ON RANGE
+        
+  var min = Math.min.apply(null, tempCardinal);
+  var max = Math.max.apply(null, tempCardinal);
+ 
+  print("min: " + min);
+  print("max: " + max);
+  
+  for (i = 0; i < tempCardinal.length; i++){
+    tempCardinal[i] = map(tempCardinal[i],min/2,max*1.5,0,255);  
+  }
+  print("tempCardinal mapped: " + tempCardinal);
 
   for (i = 1; i <= 360 / roughness; i++) {
 
     var batch;
     angleMode(DEGREES);
 
-
     push();
     translate(width / 2, height / 2);
     rotate(heading);
     rotate(i * roughness);
+    
     noStroke();
-    //fills with a colour from the storage slots where appropriate
+    
 
     fill(255 - i, 0.5 * i, 1 * i);
+
+    //N
     if (i == 360) {
       fill(tempCardinal[0], 0, 255 - tempCardinal[0]);
 
-    } else if (i == 90) {
+      //NE
+    } else if (i == 45) {
       fill(tempCardinal[1], 0, 255 - tempCardinal[1]);
+      //E
 
-    } else if (i == 180) {
+    } else if (i == 90) {
       fill(tempCardinal[2], 0, 255 - tempCardinal[2]);
 
+      //SE
+
+    } else if (i == 135) {
+      fill(tempCardinal[3], 0, 255 - tempCardinal[3]);
+
+      //S
+
+    } else if (i == 180) {
+      fill(tempCardinal[4], 0, 255 - tempCardinal[4]);
+
+      //SW
+
+    } else if (i == 225) {
+      fill(tempCardinal[5], 0, 255 - tempCardinal[5]);
+
+      //W
+
     } else if (i == 270) {
-      fill(tempCardinal[3], 0, 255 - tempCardinal[3]);;
+      fill(tempCardinal[6], 0, 255 - tempCardinal[6]);;
+
+
+      //NW
+    } else if (i == 315) {
+      fill(tempCardinal[7], 0, 255 - tempCardinal[7]);;
     }
 
     //LERP BETWEEN COLOURS HERE
 
-    else if (i < 90) {
+    //NE
+    else if (i < 45) {
 
-      batch = lerp(tempCardinal[0], tempCardinal[1], i / 89)
+      batch = lerp(tempCardinal[0], tempCardinal[1], i / 44)
+      fill(batch, 0, 255 - batch);
+
+    }
+    //E
+    else if (i > 45 && i < 90) {
+
+      batch = lerp(tempCardinal[1], tempCardinal[2], (i - 45) / 44)
+      fill(batch, 0, 255 - batch);
+
+    }
+    //SE
+    else if (i > 90 && i < 135) {
+
+      batch = lerp(tempCardinal[2], tempCardinal[3], (i - 90) / 44)
+      fill(batch, 0, 255 - batch);
+
+    }
+    //S
+    else if (i > 135 && i < 180) {
+      batch = lerp(tempCardinal[3], tempCardinal[4], (i - 135) / 44);
+      fill(batch, 0, 255 - batch);
+
+    }
+    //SW
+    else if (i > 180 && i < 225) {
+      batch = lerp(tempCardinal[4], tempCardinal[5], (i - 180) / 44);
+      fill(batch, 0, 255 - batch);
+    }
+
+    //W
+
+    else if (i > 225 && i < 270) {
+      batch = lerp(tempCardinal[5], tempCardinal[6], (i - 225) / 44);
       fill(batch, 0, 255 - batch);
 
     }
 
-    else if (i > 90 && i < 180) {
-      batch = lerp(tempCardinal[1], tempCardinal[2], (i - 90) / 89);
+    //NW
+    else if (i > 270 && i < 315) {
+      batch = lerp(tempCardinal[6], tempCardinal[7], (i - 270) / 44);
       fill(batch, 0, 255 - batch);
 
     }
-    else if (i > 180 && i < 270) {
-      batch = lerp(tempCardinal[2], tempCardinal[3], (i - 180) / 89);
-      fill(batch, 0, 255 - batch);
 
-    } else {
-      batch = lerp(tempCardinal[3], tempCardinal[1], (i - 270) / 89);
+    //N
+    else {
+      batch = lerp(tempCardinal[7], tempCardinal[0], (i - 315) / 44);
       fill(batch, 0, 255 - batch);
 
     }
