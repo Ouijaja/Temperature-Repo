@@ -20,6 +20,12 @@ let minArray = [0];
 let maxArray = [0];
 let min;
 let max;
+let slot = 0;
+let useCardinal;
+let colourMethodR;
+let colourMethodG;
+let colourMethodB;
+// original colour method for ref:           fill(tempCardinal[1], 0, 255 - tempCardinal[1]);
 
 ///NOTES
 /*
@@ -191,7 +197,7 @@ function gotData(data) {
     print("done: " + done);
     tempCardinal[done - 1] = data.main.temp - 273.15 //sets the temperature in degrees to one of 8 temperature storage slots
     //tempCardinal[done-1] = constrain(tempCardinal[done-1] * 10, 0, 255); //multiplies by 10 to get a useable colour value.
-    tempCardinal[done - 1] = map(tempCardinal[done - 1], -10, 32, 0, 255); //remaps possible temperatures of -10c to 32c to colour range 0-255 
+    tempCardinal[done - 1] = map(tempCardinal[done - 1], -10, 32, 0, 1); //remaps possible temperatures of -10c to 32c to lerp range 0-255 
 
 
 
@@ -283,7 +289,7 @@ function drawCompass() {
   print("max: " + max);
 
   for (i = 0; i < tempCardinal.length; i++) {
-    tempCardinal[i] = map(tempCardinal[i], min, max, 0, 255);
+    tempCardinal[i] = map(tempCardinal[i], min, max, 0, 1);
   }
   print("tempCardinal mapped: " + tempCardinal);
 
@@ -304,51 +310,55 @@ function drawCompass() {
     fill(255);
     rectMode(CENTER);
     if (i % 45 == 0) {
-      rect(0, radius * 1.6, thickness/40, thickness / 4);
+      rect(0, radius * 1.6, thickness / 40, thickness / 4);
     } else {
-      rect(0, radius * 1.6, thickness/90, thickness / 4);
+      rect(0, radius * 1.6, thickness / 90, thickness / 4);
     }
 
 
     fill(255 - i, 0.5 * i, 1 * i);
+    
 
-    //N
+       //N
     if (i == 360) {
-      fill(tempCardinal[0], 0, 255 - tempCardinal[0]);
+
+      useCardinal = 0;
 
       //NE
     } else if (i == 45) {
-      fill(tempCardinal[1], 0, 255 - tempCardinal[1]);
+
+      useCardinal = 1
       //E
 
     } else if (i == 90) {
-      fill(tempCardinal[2], 0, 255 - tempCardinal[2]);
-
+      useCardinal = 2;
       //SE
 
     } else if (i == 135) {
-      fill(tempCardinal[3], 0, 255 - tempCardinal[3]);
+      useCardinal = 3;
 
       //S
 
     } else if (i == 180) {
-      fill(tempCardinal[4], 0, 255 - tempCardinal[4]);
+      useCardinal = 4;
 
       //SW
 
     } else if (i == 225) {
-      fill(tempCardinal[5], 0, 255 - tempCardinal[5]);
+      useCardinal = 5;
 
       //W
 
     } else if (i == 270) {
-      fill(tempCardinal[6], 0, 255 - tempCardinal[6]);;
+      useCardinal = 6;
 
 
       //NW
     } else if (i == 315) {
-      fill(tempCardinal[7], 0, 255 - tempCardinal[7]);;
+      useCardinal = 7;
     }
+
+    
 
     //LERP BETWEEN COLOURS HERE
 
@@ -407,7 +417,7 @@ function drawCompass() {
 
     }
 
-
+    fill(tempCardinal[useCardinal], 0, 255 - tempCardinal[useCardinal]);
 
     ellipse(0, -radius, thickness);
 
