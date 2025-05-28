@@ -7,8 +7,8 @@ let cKey = "ad18681a96d109fbeaa44c67db9598f4";
 let fKey = "cd7b36c3c57f6c477856f76a895f3707";
 let apiKey;
 let heading = 0;
-let radius = innerWidth / 3.2; //aesthetic only radius of compass 
-let thickness = innerWidth / 3.6; //aesthetic thickness of compass
+let radius = innerWidth / 4; //aesthetic only radius of compass 
+let thickness = innerWidth / 4.5; //aesthetic thickness of compass
 let roughness = 1; //lower values create a smoother disc at the cost of performance. Recommended values between 1 and 40. Values other than 1 may not show temperature properly
 let tempCardinal = [0, 0, 0, 0, 0, 0, 0, 0];
 let calibrated = false;
@@ -16,7 +16,10 @@ let calibButton;
 let calibHeadingAdjust = 0;
 let done = 0;
 let detectRadius = 1; //range temperature is detected at. 1 is a 5 minute walk, 2 is 10 mins, 3 is 15, etc
-
+let minArray = [0];
+let maxArray = [0];
+let min;
+let max;
 
 ///NOTES
 /*
@@ -42,7 +45,7 @@ Nicer looking button for caibration
 function setup() {
 
   createCanvas(innerWidth, innerHeight);
-  frameRate(15);
+  frameRate(60);
   getCoords();
   setInterval(getCoords, 1000) //gets user position every second
   setInterval(getTemp, 5000); //gets temperature every x seconds. Don't call this more than 4x/s or the limit on the free api will be exceeded
@@ -57,7 +60,7 @@ function setup() {
 
 function draw() {
 
-  background(100);
+  background(75);
 
   calcHeading();
   print("Compass Heading:", heading);
@@ -84,7 +87,7 @@ function getPosition(position) {
   ulat = position.coords.latitude;
   ulon = position.coords.longitude;
   // console.log("ulat/ulon= " + ulat, ulon);
-  
+
 
 };
 
@@ -182,15 +185,15 @@ async function getTemp() {
 
 // Callback function that receives the API response data
 function gotData(data) {
-  
+
   if (data !== "null" && data !== "undefined") {
     done = done + 1;
     print("done: " + done);
     tempCardinal[done - 1] = data.main.temp - 273.15 //sets the temperature in degrees to one of 8 temperature storage slots
     //tempCardinal[done-1] = constrain(tempCardinal[done-1] * 10, 0, 255); //multiplies by 10 to get a useable colour value.
     tempCardinal[done - 1] = map(tempCardinal[done - 1], -10, 32, 0, 255); //remaps possible temperatures of -10c to 32c to colour range 0-255 
-    
-    
+
+
 
   }
 }
@@ -255,17 +258,37 @@ function calcHeading() {
 function drawCompass() {
 
   //COLOUR WEIGHTING BASED ON RANGE
-        
-  var min = Math.min.apply(null, tempCardinal);
-  var max = Math.max.apply(null, tempCardinal);
- 
+
+
+  minArray.push = Math.min.apply(null, tempCardinal);
+  maxArray.push = Math.max.apply(null, tempCardinal);
+  print("minArray: " + minArray);
+  print("maxArray: " + maxArray);
+  var sumMin = 0;
+  var sumMax = 0;
+
+  for (i = 0; i < minArray.length; i++) {
+    sumMin = sumMin + minArray[i];
+  }
+
+  min = sumMin / (minArray.length - 1);
+
+  for (i = 0; i < maxArray.length; i++) {
+    sumMax = sumMin + maxArray[i];
+  }
+
+  max = sumMax / (maxArray.length - 1);
+
   print("min: " + min);
   print("max: " + max);
-  
-  for (i = 0; i < tempCardinal.length; i++){
-    tempCardinal[i] = map(tempCardinal[i],min/2,max*1.5,0,255);  
+
+  for (i = 0; i < tempCardinal.length; i++) {
+    tempCardinal[i] = map(tempCardinal[i], min, max, 0, 255);
   }
   print("tempCardinal mapped: " + tempCardinal);
+
+
+  //DRAWING THE COMPASS
 
   for (i = 1; i <= 360 / roughness; i++) {
 
@@ -276,9 +299,16 @@ function drawCompass() {
     translate(width / 2, height / 2);
     rotate(heading);
     rotate(i * roughness);
-    
+
     noStroke();
-    
+    fill(255);
+    rectMode(CENTER);
+    if (i % 45 == 0) {
+      rect(0, radius * 1.6, thickness/40, thickness / 4);
+    } else {
+      rect(0, radius * 1.6, thickness/90, thickness / 4);
+    }
+
 
     fill(255 - i, 0.5 * i, 1 * i);
 
