@@ -25,6 +25,7 @@ let useCardinal;
 let colourMethodR;
 let colourMethodG;
 let colourMethodB;
+let isCardinal = false;
 // original colour method for ref:           fill(tempCardinal[1], 0, 255 - tempCardinal[1]);
 
 ///NOTES
@@ -69,7 +70,7 @@ function draw() {
   background(75);
 
   calcHeading();
-  print("Compass Heading:", heading);
+  //print("Compass Heading:", heading);
 
   drawCompass();
   if (calibrated == false) {
@@ -268,31 +269,31 @@ function drawCompass() {
 
   minArray.push = Math.min.apply(null, tempCardinal);
   maxArray.push = Math.max.apply(null, tempCardinal);
-  print("minArray: " + minArray);
-  print("maxArray: " + maxArray);
+  //print("minArray: " + minArray);
+  //print("maxArray: " + maxArray);
   var sumMin = 0;
   var sumMax = 0;
-
-  for (i = 0; i < minArray.length; i++) {
-    sumMin = sumMin + minArray[i];
-  }
-
-  min = sumMin / (minArray.length - 1);
-
-  for (i = 0; i < maxArray.length; i++) {
-    sumMax = sumMin + maxArray[i];
-  }
-
-  max = sumMax / (maxArray.length - 1);
-
-  print("min: " + min);
-  print("max: " + max);
-
-  for (i = 0; i < tempCardinal.length; i++) {
-    tempCardinal[i] = map(tempCardinal[i], min, max, 0, 1);
-  }
-  print("tempCardinal mapped: " + tempCardinal);
-
+  /*
+    for (i = 0; i < minArray.length; i++) {
+      sumMin = sumMin + minArray[i];
+    }
+  
+    min = sumMin / (minArray.length - 1);
+  
+    for (i = 0; i < maxArray.length; i++) {
+      sumMax = sumMin + maxArray[i];
+    }
+  
+    max = sumMax / (maxArray.length - 1);
+  
+    print("min: " + min);
+    print("max: " + max);
+  
+    for (i = 0; i < tempCardinal.length; i++) {
+      tempCardinal[i] = map(tempCardinal[i], min, max, 0, 1);
+    }
+    print("tempCardinal mapped: " + tempCardinal);
+  */
 
   //DRAWING THE COMPASS
 
@@ -316,108 +317,127 @@ function drawCompass() {
     }
 
 
-    fill(255 - i, 0.5 * i, 1 * i);
-    
+    //fill(255 - i, 0.5 * i, 1 * i);
+    isCardinal = false;
 
-       //N
+    //N
     if (i == 360) {
 
       useCardinal = 0;
+      isCardinal = true;
 
       //NE
     } else if (i == 45) {
 
       useCardinal = 1
+      isCardinal = true;
       //E
 
     } else if (i == 90) {
       useCardinal = 2;
+      isCardinal = true;
       //SE
 
     } else if (i == 135) {
       useCardinal = 3;
+      isCardinal = true;
 
       //S
 
     } else if (i == 180) {
       useCardinal = 4;
+      isCardinal = true;
 
       //SW
 
     } else if (i == 225) {
       useCardinal = 5;
+      isCardinal = true;
 
       //W
 
     } else if (i == 270) {
       useCardinal = 6;
+      isCardinal = true;
 
 
       //NW
     } else if (i == 315) {
       useCardinal = 7;
+      isCardinal = true;
     }
-
-    
 
     //LERP BETWEEN COLOURS HERE
 
     //NE
     else if (i < 45) {
 
-      batch = lerp(tempCardinal[0], tempCardinal[1], i / 44)
-      fill(batch, 0, 255 - batch);
+      useCardinal = lerp(tempCardinal[0], tempCardinal[1], i / 44)
+      //fill(batch, 0, 255 - batch);
 
     }
     //E
     else if (i > 45 && i < 90) {
 
-      batch = lerp(tempCardinal[1], tempCardinal[2], (i - 45) / 44)
-      fill(batch, 0, 255 - batch);
+      useCardinal = lerp(tempCardinal[1], tempCardinal[2], (i - 45) / 44)
+      //fill(batch, 0, 255 - batch);
 
     }
     //SE
     else if (i > 90 && i < 135) {
 
-      batch = lerp(tempCardinal[2], tempCardinal[3], (i - 90) / 44)
-      fill(batch, 0, 255 - batch);
+      useCardinal = lerp(tempCardinal[2], tempCardinal[3], (i - 90) / 44)
+      //fill(batch, 0, 255 - batch);
 
     }
     //S
     else if (i > 135 && i < 180) {
-      batch = lerp(tempCardinal[3], tempCardinal[4], (i - 135) / 44);
+      useCardinal = lerp(tempCardinal[3], tempCardinal[4], (i - 135) / 44);
       fill(batch, 0, 255 - batch);
 
     }
     //SW
     else if (i > 180 && i < 225) {
-      batch = lerp(tempCardinal[4], tempCardinal[5], (i - 180) / 44);
-      fill(batch, 0, 255 - batch);
+      useCardinal = lerp(tempCardinal[4], tempCardinal[5], (i - 180) / 44);
+      //fill(batch, 0, 255 - batch);
     }
 
     //W
 
     else if (i > 225 && i < 270) {
-      batch = lerp(tempCardinal[5], tempCardinal[6], (i - 225) / 44);
-      fill(batch, 0, 255 - batch);
+      useCardinal = lerp(tempCardinal[5], tempCardinal[6], (i - 225) / 44);
+      //fill(batch, 0, 255 - batch);
 
     }
 
     //NW
     else if (i > 270 && i < 315) {
-      batch = lerp(tempCardinal[6], tempCardinal[7], (i - 270) / 44);
-      fill(batch, 0, 255 - batch);
+      useCardinal = lerp(tempCardinal[6], tempCardinal[7], (i - 270) / 44);
+      //fill(batch, 0, 255 - batch);
 
     }
 
     //N
     else {
-      batch = lerp(tempCardinal[7], tempCardinal[0], (i - 315) / 44);
-      fill(batch, 0, 255 - batch);
+      useCardinal = lerp(tempCardinal[7], tempCardinal[0], (i - 315) / 44);
+      //fill(batch, 0, 255 - batch);
 
     }
+    colourMethodR = lerp(0, 255, tempCardinal[useCardinal]);
+    colourMethodG = lerp(255, 0, tempCardinal[useCardinal]);
+    colourMethodB = 83;
 
-    fill(tempCardinal[useCardinal], 0, 255 - tempCardinal[useCardinal]);
+    if (isCardinal == true) {
+      fill(colourMethodR, colourMethodG, colourMethodB); //colour fill for cardinal points
+    } else {
+      fill(
+        lerp(0, 255, useCardinal),
+        lerp(255, 0, useCardinal),
+        83
+      );
+    }
+
+
 
     ellipse(0, -radius, thickness);
 
