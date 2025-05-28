@@ -11,6 +11,7 @@ let radius = innerWidth / 4; //aesthetic only radius of compass
 let thickness = innerWidth / 4.5; //aesthetic thickness of compass
 let roughness = 1; //lower values create a smoother disc at the cost of performance. Recommended values between 1 and 40. Values other than 1 may not show temperature properly
 let tempCardinal = [0, 0, 0, 0, 0, 0, 0, 0];
+let tempCardinalRaw = [0, 0, 0, 0, 0, 0, 0, 0];
 let calibrated = false;
 let calibButton;
 let calibHeadingAdjust = 0;
@@ -67,7 +68,7 @@ function setup() {
 
 function draw() {
 
-  background(75);
+  background(50);
 
   calcHeading();
   //print("Compass Heading:", heading);
@@ -179,8 +180,8 @@ async function getTemp() {
 
       if (done == 8) {
         clearInterval(interLoop);
-        print("interval cleared");
-        print("tempCardinal unmapped: " + tempCardinal);
+        print("interLoop cleared");
+        print("tempCardinal unmapped: " + tempCardinalRaw);
 
       }
 
@@ -196,9 +197,9 @@ function gotData(data) {
   if (data !== "null" && data !== "undefined") {
     done = done + 1;
     print("done: " + done);
-    tempCardinal[done - 1] = data.main.temp - 273.15 //sets the temperature in degrees to one of 8 temperature storage slots
+    tempCardinalRaw[done - 1] = (data.main.temp - 273.15).toFixed(2); //sets the temperature in degrees to one of 8 temperature storage slots
     //tempCardinal[done-1] = constrain(tempCardinal[done-1] * 10, 0, 255); //multiplies by 10 to get a useable colour value.
-    tempCardinal[done - 1] = map(tempCardinal[done - 1], -10, 32, 0, 1); //remaps possible temperatures of -10c to 32c to lerp range 0-255 
+    tempCardinal[done - 1] = map(tempCardinalRaw[done - 1], -10, 32, 0, 1); //remaps possible temperatures of -10c to 32c to lerp range 0-255 
 
 
 
@@ -299,7 +300,7 @@ function drawCompass() {
 
   for (i = 1; i <= 360 / roughness; i++) {
 
-    var batch;
+
     angleMode(DEGREES);
 
     push();
@@ -307,17 +308,31 @@ function drawCompass() {
     rotate(heading);
     rotate(i * roughness);
 
+
     noStroke();
+
+    //Draw white lines
     fill(255);
     rectMode(CENTER);
     if (i % 45 == 0) {
-      rect(0, radius * 1.6, thickness / 40, thickness / 4);
+      rect(0, radius * 1.64, thickness / 45, thickness / 3);
     } else {
       rect(0, radius * 1.6, thickness / 90, thickness / 4);
     }
 
 
-    //fill(255 - i, 0.5 * i, 1 * i);
+    //Draws North
+    if (i == 360) {
+      push();
+      translate(0, -radius * 1.48);
+      triangle(-thickness / 5, 0, 0, -thickness / 2.9, thickness / 5, 0);
+      textSize(thickness / 4.5);
+      fill(50);
+      textAlign(CENTER);
+      text("N", 0, -10);
+      pop();
+    }
+
     isCardinal = false;
 
     //N
@@ -325,6 +340,7 @@ function drawCompass() {
 
       useCardinal = 0;
       isCardinal = true;
+
 
       //NE
     } else if (i == 45) {
@@ -393,7 +409,7 @@ function drawCompass() {
     //S
     else if (i > 135 && i < 180) {
       useCardinal = lerp(tempCardinal[3], tempCardinal[4], (i - 135) / 44);
-      fill(batch, 0, 255 - batch);
+      //fill(batch, 0, 255 - batch);
 
     }
     //SW
@@ -425,24 +441,39 @@ function drawCompass() {
     }
     colourMethodR = lerp(0, 255, tempCardinal[useCardinal]);
     colourMethodG = lerp(255, 0, tempCardinal[useCardinal]);
-    colourMethodB = 83;
+
+    colourMethodB = lerp(83, 0, tempCardinal[useCardinal]);
 
     if (isCardinal == true) {
+
       fill(colourMethodR, colourMethodG, colourMethodB); //colour fill for cardinal points
     } else {
       fill(
         lerp(0, 255, useCardinal),
         lerp(255, 0, useCardinal),
-        83
-      );
+        lerp(83, 0, useCardinal)
+      ); //colour fill for lerps
     }
-
-
 
     ellipse(0, -radius, thickness);
 
     pop();
 
+    //Draws numbers
+    if (isCardinal == true) {
+
+      push()
+      translate(width/2,height/2);
+      fill(255);
+      textAlign(CENTER);
+      textSize(thickness / 4.5);
+      rotate(heading);
+      rotate(i * roughness);
+      text(tempCardinalRaw[useCardinal] + "c", 0, -radius*1.9);
+      pop()
+      
+
+    }
   };
 
 
