@@ -10,8 +10,9 @@ let heading = 0;
 let radius = innerWidth / 4; //aesthetic only radius of compass 
 let thickness = innerWidth / 4.5; //aesthetic thickness of compass
 let roughness = 1; //lower values create a smoother disc at the cost of performance. Recommended values between 1 and 40. Values other than 1 may not show temperature properly
-let tempCardinal = [0, 0, 0, 0, 0, 0, 0, 0];
-let tempCardinalRaw = [0, 0, 0, 0, 0, 0, 0, 0];
+let tempCushion = 1; //value to reduce temperature colour fluctuation
+let tempCardinal = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+let tempCardinalRaw = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 let calibrated = false;
 let calibButton;
 let calibHeadingAdjust = 0;
@@ -19,14 +20,15 @@ let done = 0;
 let detectRadius = 1; //range temperature is detected at. 1 is a 5 minute walk, 2 is 10 mins, 3 is 15, etc
 let minArray = [0];
 let maxArray = [0];
-let min;
-let max;
+let min = -5;
+let max = 32;
 let slot = 0;
 let useCardinal;
 let colourMethodR;
 let colourMethodG;
 let colourMethodB;
 let isCardinal = false;
+let weighted = false;
 // original colour method for ref:           fill(tempCardinal[1], 0, 255 - tempCardinal[1]);
 
 ///NOTES
@@ -108,7 +110,7 @@ async function getTemp() {
 
 
   // When data is received, it will automatically call gotData function
-  for (i = 0; i < 8; i++) {
+  for (i = 0; i < 9; i++) {
     //North
     if (i == 0) {
       lat = ulat;
@@ -171,6 +173,14 @@ async function getTemp() {
 
     }
 
+    //Centre
+    else if (i == 8) {
+      lat = ulat
+      lon = ulon
+      apiKey = cKey;
+
+    }
+
     url = "https://api.openweathermap.org/data/2.5/weather?lat=" + lat + "&lon=" + lon + "&appid=" + apiKey
     print("url: " + url);
 
@@ -178,11 +188,22 @@ async function getTemp() {
     console.log("got temp");
     let interLoop = setInterval(function () {
 
-      if (done == 8) {
+      if (done == 9) {
         clearInterval(interLoop);
         print("interLoop cleared");
         print("tempCardinal unmapped: " + tempCardinalRaw);
+        if (weighted == false) {
+          weighted = true;
+          min = Math.min.apply(null, tempCardinalRaw);
+          max = Math.max.apply(null, tempCardinalRaw);
+          for (i = 0; i < tempCardinalRaw.length; i++) {
+            tempCardinal[i] = map(tempCardinalRaw[i], min - tempCushion, max + tempCushion, 0, 1);
+          }
+        }
 
+        print("Min: " + min);
+        print("Max: " + max);
+        tempCushion = max-min;
       }
 
     }, 10);
@@ -199,7 +220,7 @@ function gotData(data) {
     print("done: " + done);
     tempCardinalRaw[done - 1] = (data.main.temp - 273.15).toFixed(2); //sets the temperature in degrees to one of 8 temperature storage slots
     //tempCardinal[done-1] = constrain(tempCardinal[done-1] * 10, 0, 255); //multiplies by 10 to get a useable colour value.
-    tempCardinal[done - 1] = map(tempCardinalRaw[done - 1], -10, 32, 0, 1); //remaps possible temperatures of -10c to 32c to lerp range 0-255 
+    tempCardinal[done - 1] = map(tempCardinalRaw[done - 1], min - tempCushion, max + tempCushion, 0, 1); //remaps possible temperatures of -10c to 32c to lerp range 0-255 
 
 
 
@@ -265,6 +286,8 @@ function calcHeading() {
 
 function drawCompass() {
 
+
+
   //COLOUR WEIGHTING BASED ON RANGE
 
 
@@ -298,6 +321,15 @@ function drawCompass() {
 
   //DRAWING THE COMPASS
 
+  //DISPLAY USER TEMP AT CENTRE
+  push()
+  translate(width / 2, height / 2);
+  fill(255);
+  textAlign(CENTER);
+  textSize(thickness / 4.5);
+  text(tempCardinalRaw[8] + "c", 0, thickness / 10);
+  pop()
+
   for (i = 1; i <= 360 / roughness; i++) {
 
 
@@ -316,7 +348,7 @@ function drawCompass() {
     rectMode(CENTER);
     if (i % 45 == 0) {
       rect(0, radius * 1.64, thickness / 45, thickness / 3);
-    } else {
+    } else if (i % 3 == 0) {
       rect(0, radius * 1.6, thickness / 90, thickness / 4);
     }
 
@@ -325,11 +357,11 @@ function drawCompass() {
     if (i == 360) {
       push();
       translate(0, -radius * 1.48);
-      triangle(-thickness / 5, 0, 0, -thickness / 2.9, thickness / 5, 0);
+      triangle(-thickness / 5, 0, 0, -thickness / 2.7, thickness / 5, 0);
       textSize(thickness / 4.5);
       fill(50);
       textAlign(CENTER);
-      text("N", 0, -10);
+      text("N", 0, -radius / 30);
       pop();
     }
 
@@ -463,15 +495,15 @@ function drawCompass() {
     if (isCardinal == true) {
 
       push()
-      translate(width/2,height/2);
+      translate(width / 2, height / 2);
       fill(255);
       textAlign(CENTER);
       textSize(thickness / 4.5);
       rotate(heading);
       rotate(i * roughness);
-      text(tempCardinalRaw[useCardinal] + "c", 0, -radius*1.9);
+      text(tempCardinalRaw[useCardinal] + "c", 0, -radius * 1.9);
       pop()
-      
+
 
     }
   };
