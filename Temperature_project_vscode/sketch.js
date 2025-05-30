@@ -7,8 +7,8 @@ let cKey = "ad18681a96d109fbeaa44c67db9598f4";
 let fKey = "cd7b36c3c57f6c477856f76a895f3707";
 let apiKey;
 let heading = 0;
-let radius = innerWidth / 4; //aesthetic only radius of compass 
-let thickness = innerWidth / 4.5; //aesthetic thickness of compass
+let radius = innerWidth / 5; //aesthetic only radius of compass 
+let thickness = innerWidth / 5.5; //aesthetic thickness of compass
 let roughness = 1; //lower values create a smoother disc at the cost of performance. Recommended values between 1 and 40. Values other than 1 may not show temperature properly
 let tempCushion = 1; 
 let tempCardinal = [0, 0, 0, 0, 0, 0, 0, 0, 0];
