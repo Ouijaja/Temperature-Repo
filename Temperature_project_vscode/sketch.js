@@ -59,7 +59,7 @@ function setup() {
   getCoords();
   setInterval(getCoords, 1000) //gets user position every second
   setInterval(getTemp, 10000); //gets temperature every x seconds. Don't call this more than 4x/s or the limit on the free api will be exceeded
-
+  getTemp();
   calibButton = createButton("calibrate").mousePressed(calibButtonPressed);
   calibButton.position((width / 2) - ((width / 4) / 2), height / 2 - ((width / 4) / 2));
   calibButton.size(width / 4, width / 4);
