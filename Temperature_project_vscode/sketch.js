@@ -10,7 +10,7 @@ let heading = 0;
 let radius = innerWidth / 5; //aesthetic only radius of compass 
 let thickness = innerWidth / 5.5; //aesthetic thickness of compass
 let roughness = 1; //lower values create a smoother disc at the cost of performance. Recommended values between 1 and 40. Values other than 1 may not show temperature properly
-let tempCushion = 1; 
+let tempCushion = 1;
 let tempCardinal = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 let tempCardinalRaw = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 let calibrated = false;
@@ -203,7 +203,11 @@ async function getTemp() {
 
         print("Min: " + min);
         print("Max: " + max);
-        tempCushion = (max-min)*2;
+        if (max - min > 1.5) {
+          tempCushion = (max - min) * 1.5;
+        } else {
+          tempCushion = 1.5;
+        }
       }
 
     }, 10);
@@ -503,11 +507,11 @@ function drawCompass() {
       rotate(i * roughness);
       text(tempCardinalRaw[useCardinal] + "c", 0, -radius * 1.9);
 
-      if (tempCardinal[useCardinal] == Math.min.apply(null, tempCardinal) && useCardinal !== 8){
+      if (tempCardinal[useCardinal] == Math.min.apply(null, tempCardinal) && useCardinal !== 8) {
         stroke(255);
         strokeWeight(thickness / 64);
         noFill();
-        circle(0,-radius * 1.99,thickness/1.25);
+        circle(0, -radius * 1.99, thickness / 1.25);
       }
       pop()
 
